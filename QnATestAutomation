@@ -1,0 +1,214 @@
+package databasePart1;
+
+import java.sql.SQLException;
+import java.util.List;
+
+import application.*;
+
+/** 
+ * The QuestionTestAutomation class is created to automatically test
+ * several functions within the database related to search and isResolved.
+ */
+
+public class QnATestAutomation {
+
+	public static void main(String[] args) {
+		DatabaseHelper databasehelper = new DatabaseHelper();
+        try {
+            databasehelper.connectToDatabase();
+            
+            // Create a new question for testing--------------------------
+            Question q = new Question("Is this working?", "Xander", true);
+            Question q1 = new Question("Is the sky blue?", "Mr.Blue Sky", true);
+            Question q2 = new Question("Why?", "Jesus", false);
+            databasehelper.addQuestion(q);
+            databasehelper.addQuestion(q1);
+            databasehelper.addQuestion(q2);
+            
+            // Add answers to questions
+            Answer a = new Answer(q.getId(), "Sure is!", "Anonymous", true);
+            Answer a1 = new Answer(q1.getId(), "I hope so!", "Xander", true);
+            Answer a2 = new Answer(q1.getId(), "Depends on the time.", "Big Ben", false);
+            Answer a3 = new Answer(q2.getId(), "Because.", "Anonymous", false);
+            databasehelper.addAnswer(a);
+            databasehelper.addAnswer(a1);
+            databasehelper.addAnswer(a2);
+            databasehelper.addAnswer(a3);
+            // End of added questions and answers ------------------------
+            
+            // Test the Question search functionality
+            System.out.println("-------------- TEST #1 --------------");
+            // Test if search correctly finds question(s) with keyword
+            testQuestionSearch(databasehelper, "Is", true);
+            testQuestionSearch(databasehelper, "blue", true);
+            // Tests if Search comes back empty when keyword not found
+            testQuestionSearch(databasehelper, "Dog", false);
+            System.out.println();
+            
+            // Test the Answer search functionality
+            System.out.println("-------------- TEST #2 --------------");
+            // Test if search correctly finds answer(s) with keyword
+            testAnswersSearch(databasehelper, "Depends", q1.getId(), true);
+            // Tests if Search comes back empty when keyword not found
+            testAnswersSearch(databasehelper, "Depends", q.getId(), false);
+            System.out.println("");
+            
+            // Test if Questions are correctly being resolved
+            System.out.println("-------------- TEST #3 --------------");
+            // Check if isResolved doesn't need to be changed
+            testIsResolvedQuestion(databasehelper, q.getId(), true, false);
+            // Check if isResolved is changed correctly
+            testIsResolvedQuestion(databasehelper, q2.getId(), true, true);
+            testIsResolvedQuestion(databasehelper, q1.getId(), false, true);
+            testIsResolvedQuestion(databasehelper, q.getId(), false, true);
+            System.out.println("");
+            
+            
+            // Test if Answers are correctly being resolved
+            System.out.println("-------------- TEST #4 --------------");
+            // Check if isResolved doesn't need to be changed
+            testIsResolvedAnswer(databasehelper, a.getId(), true, false);
+            // Check if isResolved is changed correctly
+            testIsResolvedAnswer(databasehelper, a.getId(), false, true);
+            testIsResolvedAnswer(databasehelper, a1.getId(), false, false);
+            testIsResolvedAnswer(databasehelper, a3.getId(), true, true);
+            
+
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            databasehelper.closeConnection();
+        }
+		}
+        
+	    // Takes a keyword and checks if there is a question that contains the keyword.
+		private static void testQuestionSearch(DatabaseHelper db, String keyword, boolean expectedAns) throws SQLException {
+			List<Question> searchResults = db.searchQuestions(keyword); // Create list of search results
+			
+			// Check if the search didn't come back empty
+			// Display the results and PASS or FAIL
+			if (!searchResults.isEmpty()) {
+				if (expectedAns == true) {
+					System.out.println("\n*** PASS ***");
+				} else {
+					System.out.println("\n*** FAIL ***");
+				}
+				System.out.println("Search results for: \"" + keyword + "\"");
+				for (Question q : searchResults) {
+				    System.out.println(q.getText());
+				}
+				return;
+			}
+			
+			// If the search came back empty do the following:
+			if (expectedAns == false) {
+				System.out.println("\n*** PASS ***");
+			} else {
+				System.out.println("\n*** FAIL ***");
+			}
+			System.out.println("No questions containing keyword \"" + keyword + "\"");
+		}
+			
+		// Takes a keyword and checks if there is a answer that contains the keyword.
+		private static void testAnswersSearch(DatabaseHelper db, String keyword, int questionId, boolean expectedAns) throws SQLException {
+			List<Answer> searchResults = db.searchAnswers(keyword, questionId); // Create list with search results
+			
+			// Check if the search didn't come back empty
+			// Display the results and PASS or FAIL
+			if (!searchResults.isEmpty()) {
+				if (expectedAns == true) {
+					System.out.println("\n*** PASS ***");
+				} else {
+					System.out.println("\n*** FAIL ***");
+				}
+				System.out.println("Search results for: \"" + keyword + "\"");
+				for (Answer a : searchResults) {
+				    System.out.println(a.getText());
+				}
+			} else { // If the search came back empty do the following:
+				if (expectedAns == false) {
+					System.out.println("\n*** PASS ***");
+				} else {
+					System.out.println("\n*** FAIL ***");
+				}
+				System.out.println("Question doesn't contain answer with keyword \"" + keyword + "\"");
+			}
+		}
+		
+		// Takes Question and checks if isResolved is updated correctly
+		private static void testIsResolvedQuestion(DatabaseHelper db, int id, boolean resolved, boolean expectedAns) throws SQLException {
+			Question q = db.getQuestionById(id); // Get Current Question
+
+			// Check if Question isn't empty or already has resolved
+			if (q == null) {
+				if (expectedAns == false) {
+					System.out.println("\n*** PASS ***");
+				} else {
+					System.out.println("\n*** FAIL ***");
+				}
+				System.out.println("Question ID does not exist");
+				return;
+			}
+			else if (q.getIsResolved() == resolved) {
+				if (expectedAns == false) {
+					System.out.println("\n*** PASS ***");
+				} else {
+					System.out.println("\n*** FAIL ***");
+				}
+				System.out.println("isResolved is already \"" + resolved + "\"");
+				return;
+			} 
+			else {
+				db.updateIsResolvedQuestion(id, resolved); // Change isResolved
+			
+				// Get new updated answer
+				Question q1 = db.getQuestionById(id);
+				
+				// Display final results
+				System.out.println("\n*** PASS ***");
+				System.out.println("Question \"" + q.getText() 
+				+ "\"\nisResolved changed from \"" + q.getIsResolved()
+				+ "\" to \"" + q1.getIsResolved() + "\"");
+			}
+		}
+	
+		// Takes Answer and checks if isResolved is updated correctly
+		private static void testIsResolvedAnswer(DatabaseHelper db, int id, boolean resolved, boolean expectedAns) throws SQLException {
+			Answer a = db.getAnswerById(id); // Get Current Answer
+
+			// Check if Answer isn't empty or already has resolved
+			if (a == null) {
+				if (expectedAns == false) {
+					System.out.println("\n*** PASS ***");
+				} else {
+					System.out.println("\n*** FAIL ***");
+				}
+				System.out.println("Answer ID does not exist");
+				return;
+			}
+			else if (a.getResolved() == resolved) {
+				if (expectedAns == false) {
+					System.out.println("\n*** PASS ***");
+				} else {
+					System.out.println("\n*** FAIL ***");
+				}
+				System.out.println("isResolved is already \"" + resolved + "\"");
+				return;
+			} 
+			else {
+				db.updateAnswerResolved(id, resolved); // Change isResolved
+			
+				// Get new updated answer
+				Answer a1 = db.getAnswerById(id);
+				
+				// Show results
+				System.out.println("\n*** PASS ***");
+				System.out.println("Question \"" + a.getText() 
+				+ "\"\nisResolved changed from \"" + a.getResolved()
+				+ "\" to \"" + a1.getResolved() + "\"");
+			}
+		}
+	}
+	
+	
