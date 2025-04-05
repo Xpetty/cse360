@@ -21,6 +21,10 @@ public class AdminSetupPage {
         this.databaseHelper = databaseHelper;
     }
 
+    /**
+     * Displays the admin page in the provided primary stage.
+     * @param primaryStage The primary stage where the scene will be displayed.
+     */
     public void show(Stage primaryStage) {
     	// Input fields for userName and password
         TextField userNameField = new TextField();
